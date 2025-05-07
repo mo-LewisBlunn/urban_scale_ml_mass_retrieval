@@ -1,0 +1,30 @@
+settings:
+  MASS_retrieval_switch: true # when set to False, if the files are all there, the retrieval will be skipped
+  process_retrieval_switch: true # when set to False, the processing won't be performed
+
+fixed_variables:
+  suite: 'u-dg726'
+  temp_out_dir: '/data/scratch/lewis.blunn/ml_mass_retrieval/temp_out_dir/'
+  grid_dir: '/data/scratch/lewis.blunn/ml_mass_retrieval/temp_out_dir/grid_dir/'
+  markers_dir: '/data/scratch/lewis.blunn/ml_mass_retrieval/temp_out_dir/markers_dir/'
+  log_dir: '/data/scratch/lewis.blunn/ml_mass_retrieval/log_dir/'
+  orography_ancil_mass_path: 'moose:/adhoc/users/lewis.blunn/ancils/u-da774_Paris_0p3km_L70/orog_srtm/qrparm.orog.srtm.121x1'
+  filter_start_hour: 4 # this plus simulation time will be the output data start time
+  filter_end_hour: 38 # this plus simulation time will be the output data end time
+  target_grid_spacing: 0.0027 # the grid spacing of the high-res data in the fixed region
+  target_heights: [100, 1500, 5000] # [10, 100, 500, 1000, 1500, 2000, 3000, 4000, 6000, 8000, 10000] # the heights at which to output on vertical levels, interpolation will be performed if the level doesn't exist
+
+looping_variables:
+  models: ['pmv','pmv2k']
+  simulations: "20240716T1800Z 20240804T1800Z, 20240806T1800Z 20240818T1800Z, 20240820T1800Z 20240901T1800Z, 20240903T1800Z 20240909T1800Z" # config.py can take a list e.g., ['20240716T1800Z','20240717T1800Z'] or two date pairs separated by commas in a string and it will do all dates between them e.g., "20240716T1800Z 20240804T1800Z, 20240806T1800Z 20240818T1800Z, 20240820T1800Z 20240909T1800Z" # note: 20240902T1800Z not all there
+  streams: ['pa', 'pd']
+  members: ['00', '18', '19'] # ['00', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34']
+  cruns:
+    pa: ['000', '012', '024']
+    pd: "range(36)" # config.py can take a list e.g., ['000', '001'] or a range in a string e.g., "range(36)"
+  land_covers:
+    CCIv2: ['20240716T1800Z', '20240811T1800Z']
+    WC: ['20240812T1800Z', '20240909T1800Z']
+  stash_codes_strs:
+    pa: '3236, 3225, 3226, 3463, 3247, 3245, 4203, 30405, 30406, 24, 3234, 3217, 1235, 1202, 2207, 2201, 8223'
+    pd: '16004, 10, 2, 3, 150, 408'

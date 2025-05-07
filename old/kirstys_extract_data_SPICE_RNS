@@ -1,0 +1,142 @@
+#!/bin/bash -l                       
+#SBATCH --qos=normal                 
+#SBATCH --mem-per-cpu=3000                   
+#SBATCH --ntasks=2                  
+#SBATCH --output=/project/dymecs/khanley/WesCon/extract_data_RNS.log
+#SBATCH --time=360
+
+date=20230725
+run=00
+#suite=u-cr518
+#suite=u-dc376
+suite=u-dc988
+stream=b
+#model=UKV_LM_ukv_RA3_FB2
+#model=UKV_LM_lm_RA3_pack3
+#model=UK_ukv_ITE_RAL3p2_MURK_MORUSES_3DTE
+#model=UK_wmv_CCIv2_RAL3p2_DSMURK_MORUSES_3DTE
+model=UK_wmv100_CCIv2_RAL3p2_DSMURK_MORUSES_3DTE
+field=rain
+
+echo "Date - $date"
+echo "Run - $run"
+echo "Suite ID - $suite"
+echo "PP stream - $stream"
+echo "Models - $model"
+echo "Field - $field"
+
+if [[ ${field} = "theta" ]]; then
+   stashid=0004   
+elif [[ ${field} = "q" ]]; then
+   stashid=0010
+elif [[ ${field} = "pressure" ]]; then
+   stashid=0408
+elif [[ ${field} = "qcl" ]]; then
+   stashid=0254
+elif [[ ${field} = "qcf" ]]; then
+   stashid=0012
+elif [[ ${field} = "w" ]]; then
+   stashid=0150
+elif [[ ${field} = "viscm" ]]; then
+   stashid=13190
+elif [[ ${field} = "Km" ]]; then
+   stashid=3471
+elif [[ ${field} = "ETH" ]]; then
+   stashid=4119
+elif [[ ${field} = "Z" ]]; then
+   stashid=4118
+elif [[ ${field} = "Z_1km" ]]; then
+   stashid=4112
+elif [[ ${field} = "rain" ]]; then
+   stashid=4203
+elif [[ ${field} = "precip" ]]; then
+   stashid=5216
+elif [[ ${field} = "cloudtop" ]]; then
+   stashid=9223
+elif [[ ${field} = "cloud" ]]; then
+   stashid=9217
+elif [[ ${field} = "1.5m_temp" ]]; then
+   stashid=3236
+elif [[ ${field} = "1.5m_dewpoint" ]]; then
+   stashid=3250
+elif [[ ${field} = "Km_components" ]]; then
+   stashid=(3503,3505,3507)
+elif [[ ${field} = "10m_wind" ]]; then
+   stashid=(3225,3226)
+elif [[ ${field} = "1D_weight" ]]; then
+   stashid=3513
+elif [[ ${field} = "u" ]]; then
+   stashid=15002
+elif [[ ${field} = "v" ]]; then
+   stashid=15003
+elif [[ ${field} = "pv" ]]; then
+   stashid=15214
+elif [[ ${field} = "wind_plevs" ]]; then
+   stashid=(15201,15202)
+elif [[ ${field} = "w_plevs" ]]; then
+   stashid=15242
+elif [[ ${field} = "geopotheight" ]]; then
+   stashid=16202
+elif [[ ${field} = "thetaw" ]]; then
+   stashid=16205
+elif [[ ${field} = "mslp" ]]; then
+   stashid=16222
+elif [[ ${field} = "helicity" ]]; then
+   stashid=20080
+fi
+echo "stash id = $stashid"
+
+# loop over times
+i="0"
+
+while [ $i -lt 24 ]
+do
+
+if [ $i -lt 10 ]; then
+    j="0$i"
+else
+    j=$i
+fi
+
+echo "file = $j"
+
+# Construct the query file.
+query_file=`mktemp`
+cat >$query_file <<EOF
+begin
+    pp_file = "${date}T${run}00Z_${model}${n}_p${stream}0$j.cutout.pp"
+    stash = $stashid
+    #stash = ($stashid)
+    #period={1 hour}   # use when extracting time mean data
+    #interval_type=2   # use when extracting time mean data
+end
+EOF
+
+out_pp=/project/dymecs/khanley/WesCon/${date}/${suite}_${date}T${run}00Z_${model}_${field}.pp
+temp_out_pp=/project/dymecs/khanley/WesCon/${date}/${suite}_${date}${run}_${model}_${field}_p${stream}00$i
+#out_pp=/scratch/khanley/DYMECS/${date}/${suite}_${date}T${run}00Z_${model}_${field}.pp
+#temp_out_pp=/scratch/khanley/DYMECS/${date}/${suite}_${date}${run}_${model}_${field}_p${stream}00$i
+
+# Run the moo select, sending all the matching fields to a single output file.
+echo "extracting data to $temp_out_pp"
+moo select $query_file moose:/devfc/${suite}/field.pp/ $temp_out_pp
+if [[ $? -ne 0 ]]; then
+    # moo select returned errors, so tidy-up and exit.
+    rm $query_file
+    exit 4
+fi
+
+# Concatenate files to a single output file
+echo "concatenate files to $out_pp"
+cat $temp_out_pp >> $out_pp 
+
+# Tidy up.
+rm $temp_out_pp
+rm $query_file
+
+i=$(($i + 1))
+
+done
+
+echo "completed successfully"
+exit
