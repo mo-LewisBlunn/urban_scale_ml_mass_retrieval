@@ -15,7 +15,7 @@ class Config:
         self.grid_dir = fvars['grid_dir']
         self.markers_dir = fvars['markers_dir']
         self.log_dir = fvars['log_dir']
-        self.orography_ancil_mass_path = fvars['orography_ancil_mass_path']
+        self.ancil_mass_path = fvars['ancil_mass_path']
         self.filter_start_hour = fvars['filter_start_hour']
         self.filter_end_hour = fvars['filter_end_hour']
         self.target_grid_spacing = fvars['target_grid_spacing']
@@ -69,3 +69,8 @@ class Config:
             lc: [datetime.strptime(d, "%Y%m%dT%H%MZ") for d in dates]
             for lc, dates in self.land_covers.items() # Convert land cover date ranges to datetime
         }
+        self.ancil_suites = lvars['ancil_suites']
+        self.ancil_models = lvars['ancil_models']
+        self.ancil_stash_codes = lvars['ancil_stash_codes']
+        self.ancil_lc_names = lvars['ancil_lc_names']
+        self.ancil_lai_names = lvars['ancil_lai_names']
