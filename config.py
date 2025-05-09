@@ -23,7 +23,6 @@ class Config:
 
         lvars = raw['looping_variables']
         self.models = lvars['models']
-        sim_raw = lvars['simulations']
         def parse_simulations(sim_input):
             if isinstance(sim_input, list):
                 return sim_input
