@@ -345,7 +345,7 @@ def wait_for_jobs_to_finish(job_ids, poll_interval=30):
     """
     Wait until all submitted jobs have completed.
     """
-    print(f"Waiting for {len(job_ids)} job(s) to finish...")
+    print(f"\nWaiting for {len(job_ids)} job(s) to finish...")
     print(job_ids)
     while True:
         try:
@@ -613,15 +613,26 @@ def clean_and_join(cubelists_by_stream, sim, filter_start_hour, filter_end_hour)
     merged_by_stream = {}
 
     for stream, cubelists in cubelists_by_stream.items():
-        merged_cubelist = iris.cube.CubeList()
+        print("\nStream: ",stream)
+        combined_cubelist = iris.cube.CubeList()
 
         # Combine all cubes into one big CubeList
         for cubelist in cubelists:
-            merged_cubelist.extend(cubelist)
+            combined_cubelist.extend(cubelist)
+        print("combined_cubelist:\n",combined_cubelist)
+        
+        # Remove the scalar coordinate `realization` if it exists
+        for cube in combined_cubelist:
+            try:
+                realization_coord = cube.coord('realization')
+                cube.remove_coord('realization')
+            except iris.exceptions.CoordinateNotFoundError:
+                pass
 
-        # merge
-        merged = merged_cubelist.merge()
-             
+        # merge: 
+        merged = combined_cubelist.merge()
+        print("merged:\n",merged)
+
         # clean:
         # - times rounded to 5 min
         # - max wind gust moved to end of hour (and cell method deleted so the variable isn't removed in the next step)
@@ -656,11 +667,13 @@ def clean_and_join(cubelists_by_stream, sim, filter_start_hour, filter_end_hour)
             
                 if cube.attributes.get('STASH') == 'm01s03i463':
                     cube.cell_methods = ()
-            
+
             # only include cubes that don't have a cell method
             if not cube.cell_methods:
                 cleaned.append(cube)        
-            
+
+        print("cleaned:\n",cleaned)
+
         # if time coordinate is present, concatenate times and constrain them  
         # put the cubelists into the stream dictionary            
         first_cube = cleaned[0] # note: assumes time coordinate is the same for all cubes in the cubelist
@@ -675,6 +688,7 @@ def clean_and_join(cubelists_by_stream, sim, filter_start_hour, filter_end_hour)
                         if coord.var_name and re.search(r'_\d+$', coord.var_name):
                             coord.var_name = re.sub(r'_\d+$', '', coord.var_name)
                         return True
+                    #print("looking at metadata:\n",cube)
                     harmonize_coord_metadata(cube, "time")
                     harmonize_coord_metadata(cube, "forecast_reference_time")
                     harmonize_coord_metadata(cube, "forecast_period")          
@@ -685,12 +699,14 @@ def clean_and_join(cubelists_by_stream, sim, filter_start_hour, filter_end_hour)
                 time_constraint = iris.Constraint(time=lambda cell: start_time <= cell.point <= end_time) 
                 merged_and_concatenated = merged_and_concatenated.extract(time_constraint)
                 merged_by_stream[stream] = merged_and_concatenated
-                print(f"Merged and concatenated {len(merged_cubelist)} cubes by member and time into {len(merged_and_concatenated)} cube(s) for stream '{stream}'")
+                print(f"Merged and concatenated {len(combined_cubelist)} cubes by member and time into {len(merged_and_concatenated)} cube(s) for stream '{stream}'")
             else:
                 merged_by_stream[stream] = cleaned
-                print(f"Merged {len(merged_cubelist)} cubes by member and time into {len(merged)} cube(s) for stream '{stream}'")
+                print(f"Merged {len(combined_cubelist)} cubes by member and time into {len(merged)} cube(s) for stream '{stream}'")
         except Exception as e:
             print(f"Failed to merge/concatenate cubelist for stream '{stream}': {e}")
-            merged_by_stream[stream] = merged_cubelist  # Return raw list for manual inspection
+            merged_by_stream[stream] = combined_cubelist  # Return raw list for manual inspection
+
+        print("merged_by_stream:\n",merged_by_stream)
 
     return merged_by_stream
