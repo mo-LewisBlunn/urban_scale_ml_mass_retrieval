@@ -77,7 +77,7 @@ if __name__ == "__main__":
 #SBATCH --mem=8G
 
 module load scitools
-python run_sim_job.py {sim} {mod}
+python -u run_sim_job.py {sim} {mod}
 """
             script_path = os.path.join(config.temp_out_dir, f"run_{mod}_{sim}.sh")
             with open(script_path, "w") as f:
@@ -88,7 +88,6 @@ python run_sim_job.py {sim} {mod}
 
             # Wait for marker file from previous job. 
             # The marker is that {prev_sim}_{prev_mod}_save_started.txt has been produced by run_sim_job.py
-            # Won't be entered during the first loop (when submitted_jobs is empty)
             marker_path = os.path.join(config.markers_dir, f"{mod}_{sim}_save_started.txt")
             print(f"Must wait for the marker before moving to the next job. marker_path: {marker_path} ...")
             waiting_start_time = time.time()
